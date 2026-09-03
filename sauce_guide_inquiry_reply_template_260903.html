@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sauce CSM Mail Editor - 가이드 문의 답변</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <style>
+        :root {
+            --sauce-orange: #ff5f00;
+            --sauce-orange-hover: #e65600;
+            --sauce-black: #111827;
+            --bg-workspace: #f3f4f6;
+            --panel-bg: #ffffff;
+            --text-main: #111827;
+            --text-sub: #6b7280;
+            --border-color: #e5e7eb;
+            --btn-dark: #374151;
+            --btn-dark-hover: #111827;
+        }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            margin: 0; padding: 0;
+            background-color: var(--bg-workspace);
+            display: flex; height: 100vh;
+            overflow: hidden;
+            color: var(--text-main);
+        }
+
+        /* [좌측] 미리보기 영역 */
+        .preview-area {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            display: flex;
+            justify-content: center;
+            scroll-behavior: smooth;
+        }
+
+        /* [우측] 제어 패널 (규격 고정) */
+        .control-panel {
+            width: 420px;
+            background-color: var(--panel-bg);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.03);
+        }
+
+        .panel-header {
+            padding: 30px 25px;
+            background-color: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+        }
+        .panel-header::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 4px;
+            background-color: var(--sauce-orange);
+        }
+        .panel-header h2 {
+            margin: 0; font-size: 20px; font-weight: 800;
+            letter-spacing: -0.5px; color: var(--sauce-black);
+        }
+        .panel-header p { margin: 6px 0 0 0; font-size: 13px; color: var(--text-sub); font-weight: 500; }
+
+        .panel-content { padding: 30px 25px; flex: 1; overflow-y: auto; }
+
+        .section { margin-bottom: 35px; }
+        .section-label {
+            font-size: 12px; font-weight: 800; color: var(--sauce-orange);
+            text-transform: uppercase; margin-bottom: 15px; display: block;
+            letter-spacing: 1px;
+        }
+
+        .title-card {
+            background-color: #f9fafb;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .title-preview-text {
+            font-size: 14px; font-weight: 700; color: var(--text-main);
+            line-height: 1.5; margin-bottom: 15px; word-break: break-all;
+        }
+
+        /* 입력 그룹 규격 (이전 메일들과 통일) */
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 8px; }
+        .input-group input, .input-group textarea {
+            width: 100%; padding: 14px 16px; border: 1.5px solid var(--border-color); border-radius: 10px;
+            font-size: 14px; box-sizing: border-box; transition: all 0.2s;
+            font-family: inherit;
+        }
+        .input-group textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+        .input-group input:focus, .input-group textarea:focus {
+            border-color: var(--sauce-orange); outline: none; box-shadow: 0 0 0 4px rgba(255, 95, 0, 0.1);
+        }
+
+        /* 답변 서식 툴바 & 리치 텍스트 편집 영역 */
+        .rte-toolbar { display: flex; gap: 6px; margin-bottom: 8px; }
+        .rte-btn {
+            width: 34px; height: 34px; border: 1.5px solid var(--border-color); background: #f9fafb;
+            border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 800; color: var(--text-main);
+            display: flex; align-items: center; justify-content: center; transition: 0.15s;
+        }
+        .rte-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .rte-color-btn { width: 34px; height: 34px; border-radius: 8px; cursor: pointer; border: 1.5px solid var(--border-color); transition: 0.15s; }
+        .rte-color-btn:hover { transform: translateY(-1px); }
+        .rte-editor {
+            width: 100%; min-height: 80px; padding: 14px 16px; border: 1.5px solid var(--border-color);
+            border-radius: 10px; font-size: 14px; line-height: 1.5; font-family: inherit;
+            box-sizing: border-box; transition: all 0.2s;
+        }
+        .rte-editor:focus { border-color: var(--sauce-orange); outline: none; box-shadow: 0 0 0 4px rgba(255, 95, 0, 0.1); }
+        .rte-editor[data-placeholder]:empty:before { content: attr(data-placeholder); color: #9ca3af; }
+        .rte-editor code { background:#f1f5f9; padding:2px 6px; border-radius:4px; font-family: Consolas, Monaco, monospace; font-size: 13px; }
+        .rte-editor ul { margin: 4px 0; padding-left: 20px; }
+
+        /* Q&A 전용 카드형 입력창 */
+        .qa-card {
+            background: #ffffff; border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 20px; margin-bottom: 20px; position: relative;
+        }
+        .btn-del-qa {
+            position: absolute; top: 18px; right: 20px;
+            color: #ef4444; background: none; border: none; font-size: 11px;
+            font-weight: 700; cursor: pointer; text-decoration: underline;
+        }
+
+        /* 이미지 관리 영역 */
+        .img-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .img-item {
+            width: 50px; height: 50px; border-radius: 6px; border: 1px solid #ddd;
+            position: relative; overflow: hidden;
+        }
+        .img-item img { width: 100%; height: 100%; object-fit: cover; }
+        .img-item .del-img {
+            position: absolute; top: 0; right: 0; background: rgba(0,0,0,0.6);
+            color: white; border: none; font-size: 10px; cursor: pointer; padding: 1px 3px;
+        }
+
+        /* 버튼 규격 */
+        .btn {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; padding: 16px; border: none; border-radius: 12px;
+            font-weight: 800; font-size: 15px; cursor: pointer; transition: 0.2s;
+        }
+        .btn-orange { background-color: var(--sauce-orange); color: white; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(255, 95, 0, 0.2); }
+        .btn-orange:hover { background-color: var(--sauce-orange-hover); transform: translateY(-1px); }
+        .btn-dark { background-color: var(--btn-dark); color: white; padding: 10px; font-size: 13px; }
+        .btn-dark:hover { background-color: var(--btn-dark-hover); transform: translateY(-1px); }
+
+        .btn-add-qa { background-color: #f1f5f9; color: var(--btn-dark); font-size: 13px; border: 1px dashed #cbd5e1; margin-top: -10px; margin-bottom: 20px;}
+
+        .btn-img-upload {
+            background: #f8f9fa; color: #475569; padding: 8px 12px; font-size: 11px;
+            border-radius: 6px; border: 1px solid #ddd; cursor: pointer; display: inline-flex;
+        }
+
+        .help-text { font-size: 12px; color: var(--text-sub); text-align: center; margin-top: 15px; line-height: 1.6; }
+
+        #toast {
+            visibility: hidden; min-width: 220px; background-color: var(--sauce-black); color: #fff;
+            text-align: center; border-radius: 50px; padding: 14px 24px;
+            position: fixed; z-index: 2000; left: 50%; bottom: 40px; transform: translateX(-50%);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2s; }
+
+        .var-fill { background-color: #fff9c4; color: #d84315; font-weight: bold; border-radius: 2px; padding: 0 2px; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 40px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 40px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+    </style>
+</head>
+<body>
+
+    <div class="preview-area">
+        <div id="copy-target">
+            <table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#f4f4f4" style="font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;">
+              <tr>
+                <td align="center" style="padding: 40px 0;">
+                  <table width="600" border="0" cellspacing="0" cellpadding="0" bgcolor="#ffffff" style="border: 1px solid #eeeeee; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
+                    <tr>
+                      <td bgcolor="#235BF5" style="padding: 50px 40px; text-align: center; background: linear-gradient(135deg, #235BF5 0%, #153fb3 100%);">
+                        <div style="display: inline-block; background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 20px; color: #ffffff; font-size: 13px; font-weight: bold; margin-bottom: 15px; letter-spacing: 1px;">GUIDE SUPPORT</div>
+                        <h1 style="font-size: 35px; color: #ffffff; margin: 0; letter-spacing: -1px; font-weight: 800;">문의 내용 안내 💬</h1>
+                        <p style="font-size: 18px; color: #ffffff; margin-top: 12px; line-height: 1.5; opacity: 0.9;">가이드 이용 중 남겨주신 문의에 대한 답변을 안내드립니다.</p>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 40px 40px 10px 40px;">
+                        <p style="font-size: 15px; color: #333333; line-height: 1.7; margin: 0;">
+                          <span id="p-company-intro" class="var-fill">{회사명}</span> <span id="p-manager" class="var-fill">{담당자명}</span>님, 안녕하세요!<br>
+                          모비두 고객성공팀입니다😊<br><br>
+                          소스 솔루션 가이드 확인 중 문의 주신 부분에 대해 안내드립니다.<br><br>
+                          내용을 검토해 보신 후, 추가적으로 궁금한 점이 있으시면 언제든 편하게 말씀해 주세요.
+                        </p>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 20px 45px 40px 45px;">
+                        <h3 style="font-size: 18px; margin: 0 0 20px 0; color: #111827; line-height: 1.2;">
+                            <span style="background: #235BF5; width: 4px; height: 18px; display: inline-block; vertical-align: middle; margin-right: 10px;"></span>
+                            <span style="vertical-align: middle;">접수 내용과 답변</span>
+                        </h3>
+                        <div id="qa-preview-area"></div>
+                      </td>
+                    </tr>
+                    <tr><td style="padding: 0 40px;"><div style="border-top: 1px solid #eeeeee;"></div></td></tr>
+                    <tr><td style="padding: 30px 40px 60px 40px;">
+                        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border: 1px solid #e5e7eb; border-radius: 16px;">
+                          <tr><td style="padding: 24px;"><table width="100%" border="0" cellspacing="0" cellpadding="0"><tr><td valign="middle"><div style="font-size: 16px; font-weight: bold; color: #111827; margin-bottom: 6px;">💬 문의하기</div><div style="font-size: 13px; color: #6b7280;">궁금한 점은 카카오 채널 또는 메일로 문의해 주세요.</div></td><td width="180" valign="middle" align="right" style="padding-left: 15px;"><a href="https://pf.kakao.com/_CKxeSG" target="_blank" style="display: block; width: 100%; background-color: #fee500; color: #3c1e1e; text-decoration: none; padding: 12px 0; border-radius: 10px; font-size: 13px; font-weight: bold; margin-bottom: 8px; text-align: center;">🔗 카카오 채널 문의</a><a href="mailto:csm_sol@mobidoo.co.kr" style="display: block; width: 100%; background-color: #f3f4f6; color: #374151; text-decoration: none; padding: 12px 0; border-radius: 10px; font-size: 13px; font-weight: bold; text-align: center;">💌 메일 보내기</a></td></tr></table></td></tr>
+                        </table>
+                    </td></tr>
+                    <tr><td bgcolor="#f8f9fa" style="padding: 30px 40px; border-top: 1px solid #eeeeee; text-align: center;"><p style="font-size: 12px; color: #aaa; margin: 0;">Copyright © 2026 mobidoo. All Rights Reserved.</p></td></tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="control-panel">
+        <div class="panel-header">
+            <h2>Sauce CSM Mail Editor</h2>
+            <p>[가이드봇] 문의 답변</p>
+        </div>
+
+        <div class="panel-content">
+            <div class="section">
+                <span class="section-label">Email Title</span>
+                <div class="title-card">
+                    <div class="title-preview-text" id="title-preview">[Sauce 가이드] {회사명}님, 문의하신 내용에 대한 답변 안내드립니다</div>
+                    <button class="btn btn-dark" onclick="copyTitle()">제목 복사하기</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <span class="section-label">Common Variables</span>
+                <div class="input-group">
+                    <label>고객사명 (회사명)</label>
+                    <input type="text" id="i-company" placeholder="회사 이름을 입력하세요" oninput="syncAll()">
+                </div>
+                <div class="input-group">
+                    <label>담당자 이름</label>
+                    <input type="text" id="i-manager" placeholder="담당자 이름을 입력하세요" oninput="syncAll()">
+                </div>
+            </div>
+
+            <div class="section">
+                <span class="section-label">접수 내용과 답변</span>
+                <div id="qa-inputs-container"></div>
+                <button class="btn btn-add-qa" onclick="addQA()">+ 문의/답변 추가하기</button>
+            </div>
+
+            <div class="section">
+                <span class="section-label">Actions</span>
+                <button class="btn btn-orange" onclick="copyMail()">메일 본문 복사하기</button>
+                <div class="help-text">복사 후 메일 창에 붙여넣기(Ctrl+V) 하세요.<br>가운데 정렬과 원본 디자인이 유지됩니다.</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast">복사 완료!</div>
+
+    <script>
+        let qaCounter = 0;
+
+        function addQA() {
+            qaCounter++;
+            const id = qaCounter;
+
+            // 패널 입력창 추가
+            const container = document.getElementById('qa-inputs-container');
+            const card = document.createElement('div');
+            card.className = 'qa-card';
+            card.id = `in-qa-card-${id}`;
+            card.innerHTML = `
+                <button class="btn-del-qa" onclick="removeQA(${id})">삭제</button>
+                <div class="input-group">
+                    <label>문의 내용 ${id} (Q)</label>
+                    <input type="text" id="in-q-${id}" placeholder="접수된 문의 내용을 입력하세요" oninput="syncAll()">
+                    <button class="btn-img-upload" style="margin-top:10px;" onclick="document.getElementById('file-q-${id}').click()">🖼️ 이미지 추가 (선택)</button>
+                    <input type="file" id="file-q-${id}" hidden accept="image/*" onchange="uploadImg(this, ${id}, 'q')">
+                    <div class="img-list" id="in-img-list-q-${id}"></div>
+                </div>
+                <div class="input-group" style="margin-bottom:0;">
+                    <label>답변 내용 ${id} (A)</label>
+                    <div class="rte-toolbar">
+                        <button type="button" class="rte-btn" title="굵게 (텍스트 선택 후 클릭)" onmousedown="event.preventDefault()" onclick="rteBold()">B</button>
+                        <button type="button" class="rte-btn" style="font-size:11px;" title="코드블록 (텍스트 선택 후 클릭)" onmousedown="event.preventDefault()" onclick="rteCode()">&lt;/&gt;</button>
+                        <button type="button" class="rte-btn" title="글머리 기호" onmousedown="event.preventDefault()" onclick="rteBullet()">•</button>
+                        <button type="button" class="rte-color-btn" title="주황색 (텍스트 선택 후 클릭)" style="background-color:#ff5f00;" onmousedown="event.preventDefault()" onclick="rteColor('#ff5f00')"></button>
+                        <button type="button" class="rte-color-btn" title="파란색 (텍스트 선택 후 클릭)" style="background-color:#235BF5;" onmousedown="event.preventDefault()" onclick="rteColor('#235BF5')"></button>
+                        <button type="button" class="rte-btn" style="font-size:11px; width:auto; padding:0 8px;" title="서식 지우기" onmousedown="event.preventDefault()" onclick="rteClear()">지움</button>
+                    </div>
+                    <div class="rte-editor" id="in-a-${id}" contenteditable="true" data-placeholder="답변 입력 (텍스트를 드래그해서 서식을 적용해보세요)" oninput="syncAll()"></div>
+                    <button class="btn-img-upload" style="margin-top:10px;" onclick="document.getElementById('file-a-${id}').click()">🖼️ 이미지 추가 (선택)</button>
+                    <input type="file" id="file-a-${id}" hidden accept="image/*" onchange="uploadImg(this, ${id}, 'a')">
+                    <div class="img-list" id="in-img-list-a-${id}"></div>
+                </div>
+            `;
+            container.appendChild(card);
+
+            // 미리보기 영역 추가
+            const previewArea = document.getElementById('qa-preview-area');
+            const table = document.createElement('table');
+            table.id = `p-qa-table-${id}`;
+            table.width = "100%"; table.border = "0"; table.cellSpacing = "0"; table.cellPadding = "0";
+            table.style = "margin-bottom: 20px; background-color: #f8faff; border-radius: 16px;";
+            table.innerHTML = `
+                <tr><td style="padding: 20px;">
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                        <tr><td width="35" valign="top" style="font-size: 20px; font-weight: 900; color: #235BF5; line-height: 1.2;">Q.</td><td style="font-size: 15px; font-weight: bold; color: #111827; line-height: 1.5; padding-bottom: 12px;"><span id="p-q-${id}" class="var-fill">{문의 내용 ${id}}</span><div id="p-img-box-q-${id}"></div></td></tr>
+                        <tr><td width="35" valign="top" style="font-size: 20px; font-weight: 900; color: #94a3b8; line-height: 1.2;">A.</td><td style="font-size: 14px; color: #4b5563; line-height: 1.6; white-space: pre-wrap;"><div id="p-a-${id}" class="var-fill">{답변 내용 ${id}}</div><div id="p-img-box-a-${id}"></div></td></tr>
+                    </table>
+                </td></tr>
+            `;
+            previewArea.appendChild(table);
+            syncAll();
+        }
+
+        function removeQA(id) {
+            document.getElementById(`in-qa-card-${id}`).remove();
+            document.getElementById(`p-qa-table-${id}`).remove();
+        }
+
+        function syncAll() {
+            const company = document.getElementById('i-company').value || '{회사명}';
+            const manager = document.getElementById('i-manager').value || '{담당자명}';
+
+            // 공통 변수 및 하이라이트 제어
+            const pIntro = document.getElementById('p-company-intro');
+            const pManager = document.getElementById('p-manager');
+
+            pIntro.innerText = company;
+            pManager.innerText = manager;
+            document.getElementById('title-preview').innerText = `[Sauce 가이드] ${company}님, 문의하신 내용에 대한 답변 안내드립니다`;
+
+            toggleHighlight(pIntro, company === '{회사명}');
+            toggleHighlight(pManager, manager === '{담당자명}');
+
+            // 모든 Q&A 싱크
+            const cards = document.querySelectorAll('.qa-card');
+            cards.forEach(card => {
+                const id = card.id.split('-').pop();
+                const qVal = document.getElementById(`in-q-${id}`).value;
+                const aEditor = document.getElementById(`in-a-${id}`);
+                const aIsEmpty = aEditor.innerText.trim() === '';
+                const pq = document.getElementById(`p-q-${id}`);
+                const pa = document.getElementById(`p-a-${id}`);
+
+                pq.innerText = qVal || `{문의 내용 ${id}}`;
+                toggleHighlight(pq, !qVal);
+
+                if (aIsEmpty) {
+                    pa.innerText = `{답변 내용 ${id}}`;
+                    toggleHighlight(pa, true);
+                } else {
+                    pa.innerHTML = aEditor.innerHTML; // 굵게/코드/색상/목록 서식을 그대로 미리보기에 반영
+                    toggleHighlight(pa, false);
+                }
+            });
+        }
+
+        function uploadImg(input, qaId, type) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                const fileId = Date.now();
+                reader.onload = function(e) {
+                    const list = document.getElementById(`in-img-list-${type}-${qaId}`);
+                    const item = document.createElement('div');
+                    item.className = 'img-item';
+                    item.id = `thumb-${type}-${fileId}`;
+                    item.innerHTML = `<img src="${e.target.result}"><button class="del-img" onclick="removeImg(${fileId}, '${type}')">x</button>`;
+                    list.appendChild(item);
+
+                    const box = document.getElementById(`p-img-box-${type}-${qaId}`);
+                    const img = document.createElement('img');
+                    img.id = `p-img-${type}-${fileId}`;
+                    img.src = e.target.result;
+                    img.style = "max-width:100%; border-radius:10px; margin-top:12px; display:block;";
+                    box.appendChild(img);
+                };
+                reader.readAsDataURL(input.files[0]);
+                input.value = "";
+            }
+        }
+
+        function removeImg(fileId, type) {
+            document.getElementById(`thumb-${type}-${fileId}`).remove();
+            document.getElementById(`p-img-${type}-${fileId}`).remove();
+        }
+
+        function toggleHighlight(el, isDimmed) {
+            isDimmed ? el.classList.add('var-fill') : el.classList.remove('var-fill');
+        }
+
+        /* ===== 답변 서식 툴바 ===== */
+        function rteBold() {
+            document.execCommand('bold', false, null);
+            syncAll();
+        }
+
+        function rteBullet() {
+            document.execCommand('insertUnorderedList', false, null);
+            syncAll();
+        }
+
+        function rteColor(color) {
+            const sel = window.getSelection();
+            if (!sel || sel.isCollapsed || sel.toString().trim() === '') {
+                alert('색상을 적용할 텍스트를 먼저 드래그해서 선택해주세요.');
+                return;
+            }
+            document.execCommand('foreColor', false, color);
+            syncAll();
+        }
+
+        function rteCode() {
+            const sel = window.getSelection();
+            if (!sel || sel.isCollapsed || sel.toString().trim() === '') {
+                alert('코드블록으로 표시할 텍스트를 먼저 드래그해서 선택해주세요.');
+                return;
+            }
+            const escaped = sel.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            document.execCommand('insertHTML', false, `<code style="background:#f1f5f9;color:#111827;padding:2px 6px;border-radius:4px;font-family:Consolas, Monaco, monospace;font-size:13px;">${escaped}</code>`);
+            syncAll();
+        }
+
+        function rteClear() {
+            document.execCommand('removeFormat', false, null);
+            syncAll();
+        }
+
+        function copyTitle() {
+            navigator.clipboard.writeText(document.getElementById('title-preview').innerText).then(() => showToast("제목 복사 완료!"));
+        }
+
+        async function copyMail() {
+            const fills = document.querySelectorAll('.var-fill');
+            fills.forEach(f => f.style.backgroundColor = 'transparent');
+            const root = document.getElementById('copy-target');
+            try {
+                const blob = new Blob([root.innerHTML], { type: 'text/html' });
+                const data = [new ClipboardItem({ 'text/html': blob })];
+                await navigator.clipboard.write(data);
+                showToast("본문 복사 완료!");
+            } catch (err) { alert("복사 실패!"); }
+            fills.forEach(f => f.style.backgroundColor = '');
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById("toast");
+            t.innerText = msg; t.className = "show";
+            setTimeout(() => { t.className = ""; }, 2000);
+        }
+
+        window.onload = addQA;
+    </script>
+</body>
+</html>
